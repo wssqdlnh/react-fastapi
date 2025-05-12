@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
-import { RouterProvider, createRouter } from "@tanstack/react-router";
+import { RouterProvider, createRouter, parseSearchWith, stringifySearchWith } from "@tanstack/react-router";
 
 // Import the generated route tree
 import { routeTree } from "./routeTree.gen";
@@ -16,8 +16,35 @@ const router = createRouter({
   defaultPreload: "intent",
   scrollRestoration: true,
   defaultStructuralSharing: true,
-  defaultPreloadStaleTime: 0,
+  defaultPreloadStaleTime: 1000 * 60 * 5,
+
+  // urlにおけるパラメータ逆直列化方式の設定
+  parseSearch: parseSearchWith((value) =>
+    JSON.parse(decodeFromBinary(value))),
+
+  // urlにおけるパラメータの直列化方式の設定
+  stringifySearch: stringifySearchWith((value) =>
+    encodeToBinary(JSON.stringify(value))
+  ),
 });
+
+function decodeFromBinary(str: string): string {
+  return decodeURIComponent(
+    Array.prototype.map
+      .call(atob(str), function (c) {
+        return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+      })
+      .join("")
+  );
+}
+
+function encodeToBinary(str: string): string {
+  return btoa(
+    encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function (match, p1) {
+      return String.fromCharCode(parseInt(p1, 16));
+    })
+  );
+}
 
 // Register the router instance for type safety
 declare module "@tanstack/react-router" {

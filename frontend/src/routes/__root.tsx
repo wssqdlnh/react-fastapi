@@ -1,3 +1,4 @@
+import { ColorModeButton } from '@/components/ui/color-mode';
 import { Tabs } from '@chakra-ui/react'
 import { Link, Outlet, createRootRoute } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
@@ -10,17 +11,20 @@ function Root() {
   const pagePaths = Object.keys(modules).map(path =>
     path.replace('./_layout', '').replace('.tsx', '')
   );
-  console.log(pagePaths)
   return (
     <>
       <Link to='/page1'></Link>
       <Tabs.Root>
         <Tabs.List>
+          <Tabs.Trigger value='home' as={Link} to='/' {...{} as any}>
+            home
+          </Tabs.Trigger>
           {pagePaths.map((path) => (
-            <Tabs.Trigger value={path} as={Link} to={path}>
+            <Tabs.Trigger key={path} value={path} as={Link} to={path} {...{} as any}>
               {path}
             </Tabs.Trigger>
           ))}
+          <ColorModeButton />
         </Tabs.List>
       </Tabs.Root>
       <Outlet />
