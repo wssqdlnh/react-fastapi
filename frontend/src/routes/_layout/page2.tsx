@@ -111,9 +111,7 @@ function RouteComponent() {
               </Select.Root>
             )}
           />
-          <Field.ErrorText>
-            {errors.framework?.message === "Required" ? "必要１" : errors.framework?.message}
-          </Field.ErrorText>
+          <Field.ErrorText>{errors.framework?.message}</Field.ErrorText>
         </Field.Root>
         <Field.Root invalid={!!errors.selected} width="320px">
           <Field.Label>selected</Field.Label>
