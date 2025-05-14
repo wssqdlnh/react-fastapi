@@ -1,3 +1,4 @@
+from datetime import datetime
 from io import BytesIO
 from typing import Union
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,7 +10,8 @@ app = FastAPI(servers=[{"url": "http://localhost:8000"}])
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["GET", "POST"]
+    allow_methods=["GET", "POST"],
+    expose_headers=["Content-Disposition"]
 )
 
 
@@ -27,14 +29,16 @@ def get_gyomu_keireki_excel(
 ):
     return getgyoumuRirekiExcel()
 def getgyoumuRirekiExcel():
-    wb = load_workbook(filename = 'D:\\gyomuKeirekiList.xlsx')
+    wb = load_workbook(filename = '.\\public\\gyomuKeirekiList.xlsx')
+    sheet = wb["Sheet1"]
+    sheet["A1"] = datetime.now()
     io = BytesIO()
     wb.save(io)
     io.seek(0)
     return StreamingResponse(
         content=io,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": "attachment; filename=data.xlsx"}
+        headers={"Content-Disposition": "attachment; filename=myExcel.xlsx"}
      )
 @app.get("/data1")
 def data1():

@@ -9,15 +9,12 @@ export const Route = createFileRoute('/_layout/page3')({
 function RouteComponent() {
     const handleDownload = async () => {
         try {
-            const res = await getGyomuKeirekiExcelExcelPost({ responseType: 'blob' })
-            console.log(res);
-            console.log(res.data)
+            const res: any = await getGyomuKeirekiExcelExcelPost({ responseType: 'blob' })
+            const headers = res.headers;
             const url = window.URL.createObjectURL(res.data as Blob);
-
-
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', '業務履歴一覧.xlsx');
+            link.setAttribute('download', headers.get('content-disposition').split('filename=')[1]);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
