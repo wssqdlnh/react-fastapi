@@ -3,7 +3,10 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import {
   Button,
+  Checkbox,
+  CheckboxGroup,
   Field,
+  Fieldset,
   HStack,
   Input,
   Portal,
@@ -13,7 +16,7 @@ import {
   createListCollection,
 } from "@chakra-ui/react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Controller, useForm } from "react-hook-form"
+import { Controller, useController, useForm } from "react-hook-form"
 import { z } from "zod"
 import { data1Data1Get, data2Data2Get, data3Data3Get } from '@/client'
 import { useState } from 'react'
@@ -28,19 +31,25 @@ const formSchema = z.object({
   d1: z.string().optional(),
   d2: z.string().optional(),
   d3: z.string().optional(),
+  ckb: z.string().array().optional(),
   vv: z.undefined(), // v1、v2、v3重複チェックのタイプチェック用
   dd: z.undefined(),// d1、d2、d3重複チェックのタイプチェック用
-}).refine(data => {
-  const vValues = [data.v1, data.v2, data.v3]
-    .filter(v => v !== undefined && v !== ''); // 空文字とundefinedを除外
-  return vValues.length === new Set(vValues).size;
-}, { message: "v1、v2、v3 には重複した値を入力できません", path: ["vv"] })
+})
+  // vシリーズの重複チェック
+  .refine(data => {
+    const vValues = [data.v1, data.v2, data.v3]
+      .filter(v => v !== undefined && v !== ''); // 空文字とundefinedを除外
+    return vValues.length === new Set(vValues).size; // 重複しているかチェック
+  }, { message: "v1、v2、v3 には重複した値を入力できません", path: ["vv"] })
+
   // dシリーズの重複チェック
   .refine(data => {
     const dValues = [data.d1, data.d2, data.d3]
       .filter(d => d !== undefined && d !== ''); // 空文字とundefinedを除外
-    return dValues.length === new Set(dValues).size;
+    return dValues.length === new Set(dValues).size; // 重複しているかチェック
   }, { message: "d1、d2、d3 には重複した値を入力できません", path: ["dd"] });
+
+
 export const Route = createFileRoute('/_layout/page2')({
   component: RouteComponent,
   loader: async () => {
@@ -55,6 +64,9 @@ export const Route = createFileRoute('/_layout/page2')({
 })
 
 function RouteComponent() {
+  // データ取得
+  const selectData3 = Route.useLoaderData()
+  // フォーム
   const {
     register,
     handleSubmit,
@@ -63,7 +75,12 @@ function RouteComponent() {
   } = useForm({
     resolver: zodResolver(formSchema),
   })
-  const selectData3 = Route.useLoaderData()
+  // チェックボックス
+  const ckb = useController({
+    name: "ckb",
+    control: control,
+    defaultValue: [],
+  })
   const frameworks = createListCollection({
     items: selectData3 as Iterable<any>,
     // select label customize
@@ -212,6 +229,28 @@ function RouteComponent() {
           <Input {...register("d3")} />
           <Field.ErrorText>{errors.dd?.message}</Field.ErrorText>
         </Field.Root>
+        <Fieldset.Root invalid={!!errors.ckb?.message}>
+          <Fieldset.Legend>Select your framework</Fieldset.Legend>
+          <CheckboxGroup
+            value={ckb.field.value}
+            onValueChange={ckb.field.onChange}
+            name={ckb.field.name}
+          >
+            <Fieldset.Content>
+              {items.map((item) => (
+                <Checkbox.Root key={item.value} value={item.value}>
+                  <Checkbox.HiddenInput />
+                  <Checkbox.Control />
+                  <Checkbox.Label>{item.label}</Checkbox.Label>
+                </Checkbox.Root>
+              ))}
+            </Fieldset.Content>
+          </CheckboxGroup>
+
+          {errors.ckb && (
+            <Fieldset.ErrorText>{errors.ckb.message}</Fieldset.ErrorText>
+          )}
+        </Fieldset.Root>
         <Button size="sm" type="submit">
           Submit
         </Button>
