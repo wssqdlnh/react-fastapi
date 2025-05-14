@@ -5,6 +5,7 @@ import {
   Button,
   Field,
   HStack,
+  Input,
   Portal,
   RadioGroup,
   Select,
@@ -18,32 +19,51 @@ import { data1Data1Get, data2Data2Get, data3Data3Get } from '@/client'
 import { useState } from 'react'
 
 const formSchema = z.object({
-  framework: z.array(z.string({ message: "必要１" })).nonempty({ message: "必要１" }),
-  selected: z.string({ message: "必要２" }),
+  framework: z.array(z.string()).optional().refine(val => !!val, { message: "必須項目です" }),
+  selected: z.array(z.string()).optional().refine(val => !!val, { message: "必須項目です" }),
   value: z.string({ message: "必要３" }),
-})
-
-type FormValues = z.infer<typeof formSchema>
+  v1: z.string().optional(),
+  v2: z.string().optional(),
+  v3: z.string().optional(),
+  d1: z.string().optional(),
+  d2: z.string().optional(),
+  d3: z.string().optional(),
+  vv: z.undefined(), // v1、v2、v3重複チェックのタイプチェック用
+  dd: z.undefined(),// d1、d2、d3重複チェックのタイプチェック用
+}).refine(data => {
+  const vValues = [data.v1, data.v2, data.v3]
+    .filter(v => v !== undefined && v !== ''); // 空文字とundefinedを除外
+  return vValues.length === new Set(vValues).size;
+}, { message: "v1、v2、v3 には重複した値を入力できません", path: ["vv"] })
+  // dシリーズの重複チェック
+  .refine(data => {
+    const dValues = [data.d1, data.d2, data.d3]
+      .filter(d => d !== undefined && d !== ''); // 空文字とundefinedを除外
+    return dValues.length === new Set(dValues).size;
+  }, { message: "d1、d2、d3 には重複した値を入力できません", path: ["dd"] });
 export const Route = createFileRoute('/_layout/page2')({
   component: RouteComponent,
   loader: async () => {
-    const data = await data3Data3Get()
-    return data.data
+    const res = await data3Data3Get()
+    if (res.status !== 200) {
+      throw new Error("status!==200")
+    }
+    return res.data ? res.data : []
   },
-  errorComponent: (error) => <div>{error.error.message}</div>,
+  errorComponent: (error) => <div>error:{error.error.message}</div>,
+  pendingComponent: () => <div>loading...</div>,
 })
 
 function RouteComponent() {
   const {
+    register,
     handleSubmit,
     formState: { errors },
     control,
-  } = useForm<FormValues>({
+  } = useForm({
     resolver: zodResolver(formSchema),
   })
-
   const selectData3 = Route.useLoaderData()
-  // console.log(selectData)
   const frameworks = createListCollection({
     items: selectData3 as Iterable<any>,
     // select label customize
@@ -52,8 +72,7 @@ function RouteComponent() {
     itemToValue: (item) => item.value + "ing",
   })
   const [selectData, setSelectData] = useState()
-  const selection = createListCollection({ items: selectData || [] })
-  console.log(frameworks.items)
+  const selection = createListCollection<any>({ items: selectData || [] })
   const onSubmit = handleSubmit((data) => console.log(data))
   return (
     <form onSubmit={onSubmit}>
@@ -63,6 +82,7 @@ function RouteComponent() {
           <Controller
             control={control}
             name="framework"
+            rules={{ required: 'Controller required' }}
             render={({ field }) => (
               <Select.Root
                 name={field.name}
@@ -71,16 +91,12 @@ function RouteComponent() {
                 onValueChange={({ value }) => {
                   field.onChange(value)
                   if (value.includes("data1ing")) {
-                    console.log("data1ing")
                     data1Data1Get().then((data) => {
-                      console.log(data)
-                      setSelectData(data.data)
+                      setSelectData(data.data as any)
                     })
                   } else {
-                    console.log("data1ing")
                     data2Data2Get().then((data) => {
-                      console.log(data)
-                      setSelectData(data.data)
+                      setSelectData(data.data as any)
                     })
                   }
                 }}
@@ -121,18 +137,18 @@ function RouteComponent() {
             render={({ field }) => (
               <Select.Root
                 name={field.name}
-                value={[field.value]}
+                value={field.value}
                 onValueChange={({ value }) => {
                   field.onChange(value)
                 }
                 }
                 onInteractOutside={() => field.onBlur()}
-                collection={frameworks}
+                collection={selection}
               >
                 <Select.HiddenSelect />
                 <Select.Control>
                   <Select.Trigger>
-                    <Select.ValueText placeholder="Select framework" />
+                    <Select.ValueText placeholder="selected" />
                   </Select.Trigger>
                   <Select.IndicatorGroup>
                     <Select.Indicator />
@@ -141,9 +157,9 @@ function RouteComponent() {
                 <Portal>
                   <Select.Positioner>
                     <Select.Content>
-                      {selection.items.map((framework) => (
-                        <Select.Item item={framework} key={framework.value}>
-                          {framework.name}
+                      {selection.items.map((selData) => (
+                        <Select.Item item={selData} key={selData.value}>
+                          {selData.name}
                           <Select.ItemIndicator />
                         </Select.Item>
                       ))}
@@ -182,7 +198,20 @@ function RouteComponent() {
           />
           <Field.ErrorText>{errors.value?.message}</Field.ErrorText>
         </Field.Root>
-
+        <Field.Root invalid={!!errors.vv?.message} width="320px">
+          <Field.Label>v</Field.Label>
+          <Input {...register("v1")} />
+          <Input {...register("v2")} />
+          <Input {...register("v3")} />
+          <Field.ErrorText>{errors.vv?.message}</Field.ErrorText>
+        </Field.Root>
+        <Field.Root invalid={!!errors.dd?.message} width="320px">
+          <Field.Label>d</Field.Label>
+          <Input {...register("d1")} />
+          <Input {...register("d2")} />
+          <Input {...register("d3")} />
+          <Field.ErrorText>{errors.dd?.message}</Field.ErrorText>
+        </Field.Root>
         <Button size="sm" type="submit">
           Submit
         </Button>
@@ -195,11 +224,3 @@ const items = [
   { value: "2", label: "Option 2" },
   { value: "3", label: "Option 3" },
 ]
-// const frameworks = createListCollection({
-//   items: [
-//     { label: "React.js", value: "react" },
-//     { label: "Vue.js", value: "vue" },
-//     { label: "Angular", value: "angular" },
-//     { label: "Svelte", value: "svelte" },
-//   ],
-// })
