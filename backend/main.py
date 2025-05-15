@@ -6,6 +6,8 @@ from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from openpyxl import load_workbook
 
+from shainLog import log_response_headers
+
 app = FastAPI(servers=[{"url": "http://localhost:8000"}])
 app.add_middleware(
     CORSMiddleware,
@@ -14,6 +16,10 @@ app.add_middleware(
     expose_headers=["Content-Disposition"]
 )
 
+@app.get("/test")
+@log_response_headers()
+async def test_endpoint():
+    return {"message": "Hello World", "status": "success"}
 
 @app.get("/")
 def read_root():
